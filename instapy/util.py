@@ -194,3 +194,33 @@ def formatNumber(number):
     formattedNum = number.replace(',', '').replace('.', '')
     formattedNum = int(formattedNum.replace('k', '00').replace('m', '00000'))
     return formattedNum
+	
+def addUnfollowedToUnfollowedBlacklist(username, person):
+    
+    file_exists = os.path.isfile('./logs/UnfollowBlacklist_' + username + '.csv')
+  
+    try:
+
+        with open('./logs/UnfollowBlacklist_' + username + '.csv', 'ab') as UnfollowBlacklist:
+            writer = csv.writer(UnfollowBlacklist)
+            writer.writerow([person])
+    except Exception as err:
+        print(err)
+
+def checkIfPersonWasPreviouslyUnfollowed(username, person):
+    
+    file_exists = os.path.isfile('./logs/UnfollowBlacklist_' + username + '.csv')
+       
+    try:
+        if not file_exists:
+            return False
+        with open('./logs/UnfollowBlacklist_' + username + '.csv', 'rb') as UnfollowBlacklist:
+            reader = csv.reader(UnfollowBlacklist)
+            for row in reader:
+                if str(row[0]) == str(person):
+                    return True
+            return False
+    except Exception as err:
+        print(err)
+        
+

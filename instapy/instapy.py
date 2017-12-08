@@ -108,6 +108,7 @@ class InstaPy:
         self.like_by_followers_lower_limit = 0
 
         self.aborting = False
+        self.dont_follow_previously_unfollowed = True
 
         # initialize and setup logging system
         self.logger = logging.getLogger(__name__)
@@ -131,6 +132,7 @@ class InstaPy:
             error_msg = ('Sorry, Record Activity is not working on Windows. '
                          'We\'re working to fix this soon!')
             self.logger.critical(error_msg)
+			
 
     def set_selenium_local_session(self):
         """Starts local session for a selenium server.
@@ -434,7 +436,9 @@ class InstaPy:
                                               acc_to_follow,
                                               self.follow_restrict,
                                               self.blacklist,
-                                              self.logger)
+                                              self.logger,
+											  self.username,
+											  self.dont_follow_previously_unfollowed)
                 self.followed += followed
                 self.logger.info('Followed: {}'.format(str(followed)))
                 followed = 0
@@ -569,7 +573,8 @@ class InstaPy:
                                                         self.username,
                                                         user_name,
                                                         self.blacklist,
-                                                        self.logger)
+                                                        self.logger,
+														dont_follow_previously_unfollowed)
 
                             else:
                                 self.logger.info('--> Not following')
@@ -714,7 +719,8 @@ class InstaPy:
                                                         self.username,
                                                         user_name,
                                                         self.blacklist,
-                                                        self.logger)
+                                                        self.logger,
+														self.dont_follow_previously_unfollowed)
                             else:
                                 self.logger.info('--> Not following')
                                 sleep(1)
@@ -786,7 +792,8 @@ class InstaPy:
                                         self.username,
                                         username,
                                         self.blacklist,
-                                        self.logger)
+                                        self.logger,
+										dont_follow_previously_unfollowed)
             else:
                 self.logger.info('--> Not following')
                 sleep(1)
@@ -971,7 +978,8 @@ class InstaPy:
                                 self.username,
                                 username,
                                 self.blacklist,
-                                self.logger)
+                                self.logger,
+								dont_follow_previously_unfollowed)
                         else:
                             self.logger.info('--> Not following')
                             sleep(1)
@@ -1170,7 +1178,8 @@ class InstaPy:
                                                             randomize,
                                                             sleep_delay,
                                                             self.blacklist,
-                                                            self.logger)
+                                                            self.logger,
+															self.dont_follow_previously_unfollowed)
 
             except (TypeError, RuntimeWarning) as err:
                 if isinstance(err, RuntimeWarning):
@@ -1217,7 +1226,8 @@ class InstaPy:
                                                             randomize,
                                                             sleep_delay,
                                                             self.blacklist,
-                                                            self.logger)
+                                                            self.logger,
+															dont_follow_previously_unfollowed)
 
             except (TypeError, RuntimeWarning) as err:
                 if isinstance(err, RuntimeWarning):
@@ -1429,7 +1439,8 @@ class InstaPy:
                                             self.username,
                                             user_name,
                                             self.blacklist,
-                                            self.logger)
+                                            self.logger,
+											dont_follow_previously_unfollowed)
                                     else:
                                         self.logger.info('--> Not following')
                                         sleep(1)
@@ -1491,6 +1502,16 @@ class InstaPy:
                         self.dont_include.append(row['username'])
         except:
             self.logger.info('Campaign {} first run'.format(campaign))
+			
+    def set_dont_follow_previously_unfollowed(self, enabled):
+		#Used to enable/disable Don't Follow Previously Unfollowed
+		#Default state is True
+		
+		if enabled is True:
+			return
+		else:
+			self.dont_follow_previously_unfollowed = False
+			
 
     def end(self):
         """Closes the current session"""

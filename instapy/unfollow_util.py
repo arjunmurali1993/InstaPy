@@ -10,6 +10,8 @@ from .util import add_user_to_blacklist
 from .print_log_writer import log_followed_pool
 from selenium.common.exceptions import NoSuchElementException
 import random
+from .util import addUnfollowedToUnfollowedBlacklist
+from .util import checkIfPersonWasPreviouslyUnfollowed
 
 
 def set_automated_followed_pool(username, logger):
@@ -108,6 +110,7 @@ def unfollow(browser,
                             '--> Ongoing Unfollow From InstaPy {},'
                             ' now unfollowing: {}'
                             .format(str(unfollowNum), person.encode('utf-8')))
+                        addUnfollowedToUnfollowedBlacklist(username,person)
 
                         sleep(15)
 
@@ -243,6 +246,7 @@ def unfollow(browser,
                     print('--> Ongoing Unfollow ' + str(unfollowNum) +
                           ', now unfollowing: {}'
                           .format(person.encode('utf-8')))
+                    addUnfollowedToUnfollowedBlacklist(username,person)
                     sleep(15)
                     if hasSlept:
                         hasSlept = False
@@ -309,6 +313,7 @@ def unfollow(browser,
                     logger.info(
                         '--> Ongoing Unfollow {}, now unfollowing: {}'
                         .format(str(unfollowNum), person.encode('utf-8')))
+                    addUnfollowedToUnfollowedBlacklist(username,person)
                     sleep(15)
                     # To only sleep once until there is the next unfollow
                     if hasSlept:
@@ -324,38 +329,69 @@ def unfollow(browser,
     return unfollowNum
 
 
-def follow_user(browser, follow_restrict, login, user_name, blacklist, logger):
+def follow_user(browser, follow_restrict, login, user_name, blacklist, logger, dont_follow_previously_unfollowed):
     """Follows the user of the currently opened image"""
 
     try:
-        follow_button = browser.find_element_by_xpath(
-                "//button[text()='Follow']")
+		if dont_follow_previously_unfollowed is True:
+			if not checkIfPersonWasPreviouslyUnfollowed(login, user_name):
+				follow_button = browser.find_element_by_xpath(
+						"//button[text()='Follow']")
 
-        # Do we still need this sleep?
-        sleep(2)
+				# Do we still need this sleep?
+				sleep(2)
 
-        if follow_button.is_displayed():
-            follow_button.send_keys("\n")
-            update_activity('follows')
-        else:
-            browser.execute_script(
-                "arguments[0].style.visibility = 'visible'; "
-                "arguments[0].style.height = '10px'; "
-                "arguments[0].style.width = '10px'; "
-                "arguments[0].style.opacity = 1", follow_button)
-            follow_button.click()
-            update_activity('follows')
+				if follow_button.is_displayed():
+					follow_button.send_keys("\n")
+					update_activity('follows')
+				else:
+					browser.execute_script(
+						"arguments[0].style.visibility = 'visible'; "
+						"arguments[0].style.height = '10px'; "
+						"arguments[0].style.width = '10px'; "
+						"arguments[0].style.opacity = 1", follow_button)
+					follow_button.click()
+					update_activity('follows')
 
-        logger.info('--> Now following')
-        log_followed_pool(login, user_name, logger)
-        follow_restrict[user_name] = follow_restrict.get(user_name, 0) + 1
-        if blacklist['enabled'] is True:
-            action = 'followed'
-            add_user_to_blacklist(
-                browser, user_name, blacklist['campaign'], action, logger
-            )
-        sleep(3)
-        return 1
+				logger.info('--> Now following')
+				log_followed_pool(login, user_name, logger)
+				follow_restrict[user_name] = follow_restrict.get(user_name, 0) + 1
+				if blacklist['enabled'] is True:
+					action = 'followed'
+					add_user_to_blacklist(
+						browser, user_name, blacklist['campaign'], action, logger
+					)
+				sleep(3)
+				return 1
+		else:
+			follow_button = browser.find_element_by_xpath(
+					"//button[text()='Follow']")
+
+			# Do we still need this sleep?
+			sleep(2)
+
+			if follow_button.is_displayed():
+				follow_button.send_keys("\n")
+				update_activity('follows')
+			else:
+				browser.execute_script(
+					"arguments[0].style.visibility = 'visible'; "
+					"arguments[0].style.height = '10px'; "
+					"arguments[0].style.width = '10px'; "
+					"arguments[0].style.opacity = 1", follow_button)
+				follow_button.click()
+				update_activity('follows')
+
+			logger.info('--> Now following')
+			log_followed_pool(login, user_name, logger)
+			follow_restrict[user_name] = follow_restrict.get(user_name, 0) + 1
+			if blacklist['enabled'] is True:
+				action = 'followed'
+				add_user_to_blacklist(
+					browser, user_name, blacklist['campaign'], action, logger
+				)
+			sleep(3)
+			return 1
     except NoSuchElementException:
         logger.info('--> Already following')
         sleep(1)
@@ -380,7 +416,9 @@ def follow_given_user(browser,
                       acc_to_follow,
                       follow_restrict,
                       blacklist,
-                      logger):
+                      logger,
+					  username,
+					  dont_follow_previously_unfollowed):
     """Follows a given user."""
     browser.get('https://www.instagram.com/' + acc_to_follow)
     # update server calls
@@ -388,22 +426,41 @@ def follow_given_user(browser,
     logger.info('--> {} instagram account is opened...'.format(acc_to_follow))
 
     try:
-        sleep(10)
-        follow_button = browser.find_element_by_xpath("//*[text()='Follow']")
-        follow_button.send_keys("\n")
-        update_activity('follows')
-        logger.info('---> Now following: {}'.format(acc_to_follow))
-        follow_restrict[acc_to_follow] = follow_restrict.get(
-            acc_to_follow, 0) + 1
+        if dont_follow_previously_unfollowed is True:
+			if not checkIfPersonWasPreviouslyUnfollowed(username, acc_to_follow):
+				sleep(10)
+				follow_button = browser.find_element_by_xpath("//*[text()='Follow']")
+				follow_button.send_keys("\n")
+				update_activity('follows')
+				logger.info('---> Now following: {}'.format(acc_to_follow))
+				follow_restrict[acc_to_follow] = follow_restrict.get(
+					acc_to_follow, 0) + 1
 
-        if blacklist['enabled'] is True:
-            action = 'followed'
-            add_user_to_blacklist(
-                browser, acc_to_follow, blacklist['campaign'], action, logger
-            )
+				if blacklist['enabled'] is True:
+					action = 'followed'
+					add_user_to_blacklist(
+						browser, acc_to_follow, blacklist['campaign'], action, logger
+					)
 
-        sleep(3)
-        return 1
+				sleep(3)
+				return 1
+        else:
+			sleep(10)
+			follow_button = browser.find_element_by_xpath("//*[text()='Follow']")
+			follow_button.send_keys("\n")
+			update_activity('follows')
+			logger.info('---> Now following: {}'.format(acc_to_follow))
+			follow_restrict[acc_to_follow] = follow_restrict.get(
+				acc_to_follow, 0) + 1
+
+			if blacklist['enabled'] is True:
+				action = 'followed'
+				add_user_to_blacklist(
+					browser, acc_to_follow, blacklist['campaign'], action, logger
+				)
+
+			sleep(3)
+			return 1
     except NoSuchElementException:
         logger.warning('---> {} is already followed'.format(acc_to_follow))
         sleep(3)
@@ -412,6 +469,7 @@ def follow_given_user(browser,
 
 def follow_through_dialog(browser,
                           user_name,
+                          dont_follow_previously_unfollowed,
                           amount,
                           dont_include,
                           login,
@@ -502,36 +560,67 @@ def follow_through_dialog(browser,
                 continue
 
             if person not in dont_include:
-                followNum += 1
-                # Register this session's followed user for further interaction
-                person_followed.append(person)
+				if dont_follow_previously_unfollowed is True:
+					if not checkIfPersonWasPreviouslyUnfollowed(user_name, person):
+						followNum += 1
+						# Register this session's followed user for further interaction
+						person_followed.append(person)
 
-                button.send_keys("\n")
-                log_followed_pool(login, person, logger)
-                update_activity('follows')
+						button.send_keys("\n")
+						log_followed_pool(login, person, logger)
+						update_activity('follows')
 
-                follow_restrict[user_name] = follow_restrict.get(
-                    user_name, 0) + 1
+						follow_restrict[user_name] = follow_restrict.get(
+							user_name, 0) + 1
 
-                logger.info('--> Ongoing follow {}, now following: {}'
-                            .format(str(followNum), person.encode('utf-8')))
+						logger.info('--> Ongoing follow {}, now following: {}'
+									.format(str(followNum), person.encode('utf-8')))
 
-                if blacklist['enabled'] is True:
-                    action = 'followed'
-                    add_user_to_blacklist(
-                        browser, person, blacklist['campaign'], action, logger
-                    )
+						if blacklist['enabled'] is True:
+							action = 'followed'
+							add_user_to_blacklist(
+								browser, person, blacklist['campaign'], action, logger
+							)
 
-                for callback in callbacks:
-                    callback(person.encode('utf-8'))
-                sleep(15)
+						for callback in callbacks:
+							callback(person.encode('utf-8'))
+						sleep(15)
 
-                # To only sleep once until there is the next follow
-                if hasSlept:
-                    hasSlept = False
+						# To only sleep once until there is the next follow
+						if hasSlept:
+							hasSlept = False
 
-                continue
+						continue
+				else:
+					followNum += 1
+					# Register this session's followed user for further interaction
+					person_followed.append(person)
 
+					button.send_keys("\n")
+					log_followed_pool(login, person, logger)
+					update_activity('follows')
+
+					follow_restrict[user_name] = follow_restrict.get(
+						user_name, 0) + 1
+
+					logger.info('--> Ongoing follow {}, now following: {}'
+								.format(str(followNum), person.encode('utf-8')))
+
+					if blacklist['enabled'] is True:
+						action = 'followed'
+						add_user_to_blacklist(
+							browser, person, blacklist['campaign'], action, logger
+						)
+
+					for callback in callbacks:
+						callback(person.encode('utf-8'))
+					sleep(15)
+
+					# To only sleep once until there is the next follow
+					if hasSlept:
+						hasSlept = False
+
+					continue
             else:
                 if randomize:
                     repickedNum = -1
@@ -689,7 +778,8 @@ def follow_given_user_followers(browser,
                                 random,
                                 delay,
                                 blacklist,
-                                logger):
+                                logger,
+								dont_follow_previously_unfollowed):
 
     browser.get('https://www.instagram.com/' + user_name)
     # update server calls
@@ -714,6 +804,7 @@ def follow_given_user_followers(browser,
 
     personFollowed = follow_through_dialog(browser,
                                            user_name,
+                                           dont_follow_previously_unfollowed,
                                            amount,
                                            dont_include,
                                            login,
@@ -737,7 +828,8 @@ def follow_given_user_following(browser,
                                 random,
                                 delay,
                                 blacklist,
-                                logger):
+                                logger,
+								dont_follow_previously_unfollowed):
 
     browser.get('https://www.instagram.com/' + user_name)
     # update server calls
@@ -762,6 +854,7 @@ def follow_given_user_following(browser,
 
     personFollowed = follow_through_dialog(browser,
                                            user_name,
+                                           dont_follow_previously_unfollowed,
                                            amount,
                                            dont_include,
                                            login,
